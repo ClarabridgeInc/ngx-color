@@ -4,20 +4,7 @@ import { join } from 'path';
 import * as del from 'del';
 
 const MODULE_NAMES = [
-  'alpha',
-  'block',
-  'chrome',
-  'circle',
-  'compact',
-  'github',
-  'hue',
-  'material',
-  'photoshop',
-  'sketch',
-  'slider',
-  'swatches',
-  'twitter',
-  'shade',
+  'sketch'
 ];
 
 async function main() {

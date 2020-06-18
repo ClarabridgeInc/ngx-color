@@ -6,6 +6,7 @@ import {
   OnDestroy,
   OnInit,
   Output,
+  Renderer2,
 } from '@angular/core';
 
 import { Subject, Subscription } from 'rxjs';
@@ -30,26 +31,8 @@ export class CoordinatesDirective implements OnInit, OnDestroy {
     isTouch: boolean;
   }>();
 
-  private mouseListening = false;
   private sub: Subscription;
-  @HostListener('window:mousemove', ['$event', '$event.pageX', '$event.pageY'])
-  @HostListener('window:touchmove', [
-    '$event',
-    '$event.touches[0].clientX',
-    '$event.touches[0].clientY',
-    'true',
-  ])
-  mousemove($event: Event, x: number, y: number, isTouch = false) {
-    if (this.mouseListening) {
-      $event.preventDefault();
-      this.mousechange.next({ $event, x, y, isTouch });
-    }
-  }
-  @HostListener('window:mouseup')
-  @HostListener('window:touchend')
-  mouseup() {
-    this.mouseListening = false;
-  }
+
   @HostListener('mousedown', ['$event', '$event.pageX', '$event.pageY'])
   @HostListener('touchstart', [
     '$event',
@@ -59,11 +42,39 @@ export class CoordinatesDirective implements OnInit, OnDestroy {
   ])
   mousedown($event: Event, x: number, y: number, isTouch = false) {
     $event.preventDefault();
-    this.mouseListening = true;
+
+    let moveListener;
+    if (isTouch) {
+      moveListener = this.renderer.listen('window', 'touchmove', (event) => {
+        event.preventDefault();
+        this.mousechange.next({
+          $event: event,
+          x: event.touches[0].clientX,
+          y: event.touches[0].clientY,
+          isTouch
+        });
+      });
+    } else {
+      moveListener = this.renderer.listen('window', 'mousemove', (event) => {
+        event.preventDefault();
+        this.mousechange.next({
+          $event: event,
+          x: event.pageX,
+          y: event.pageY,
+          isTouch
+        });
+      });
+    }
+
+    const upListener = this.renderer.listen('window', isTouch ? 'touchend' : 'mouseup', (event) => {
+      moveListener();
+      upListener();
+    })
+
     this.mousechange.next({ $event, x, y, isTouch });
   }
 
-  constructor(private el: ElementRef) {}
+  constructor(private el: ElementRef, private renderer: Renderer2) {}
 
   ngOnInit() {
     this.sub = this.mousechange
